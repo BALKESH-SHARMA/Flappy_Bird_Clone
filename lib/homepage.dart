@@ -122,7 +122,7 @@ class _HomePageState extends State<HomePage> {
         }
 
         //when bird touches ground
-        if (birdYaxis > 1) {
+        if (birdYaxis > 1 || birdYaxis < -2) {
           timer.cancel();
           gameHasStarted = false;
           if (score > highScore) {
