@@ -4,8 +4,10 @@ import 'package:flappy_bird_clone/barriers.dart';
 import 'package:flappy_bird_clone/bird.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomePage extends StatefulWidget {
+  static const String ROUTE_NAME = '/homePageScreen';
   const HomePage({Key? key}) : super(key: key);
 
   @override
@@ -13,28 +15,57 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  int score = 0;
+  static const String HIGH_SCORE_KEY = 'highScore';
   static double birdYaxis = 0;
   double time = 0;
+  int score = 0;
   double height = 0;
   double initialHeight = birdYaxis;
   double barrierXone = 1.1;
   double barrierXtwo = 1.1 + 1.7;
 
   bool gameHasStarted = false;
+  int highScore = 0;
 
-  void restartGame() {
+  void setInitialValues() {
     setState(() {
+      birdYaxis = 0;
       time = 0;
       height = 0;
-      birdYaxis = 0;
       initialHeight = birdYaxis;
-      gameHasStarted = false;
       barrierXone = 1.1;
       barrierXtwo = barrierXone + 1.7;
       score = 0;
+      gameHasStarted = false;
     });
   }
+
+  Future<void> getHighScore() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      highScore = prefs.getInt(HIGH_SCORE_KEY) ?? 0;
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    getHighScore();
+    setInitialValues();
+  }
+
+  // void restartGame() {
+  //   setState(() {
+  //     time = 0;
+  //     height = 0;
+  //     birdYaxis = 0;
+  //     initialHeight = birdYaxis;
+  //     gameHasStarted = false;
+  //     barrierXone = 1.1;
+  //     barrierXtwo = barrierXone + 1.7;
+  //     score = 0;
+  //   });
+  // }
 
   void jump() {
     setState(() {
@@ -43,42 +74,62 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  void startGame() {
+  void scoreUpdate(double x) {
+    //print(x);
+    setState(() {
+      if ((x < 0.02 && x > -0.02)) {
+        score++;
+      }
+    });
+  }
+
+  void startGame() async {
     gameHasStarted = true;
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+
     Timer.periodic(
-      const Duration(milliseconds: 45),
-      (timer) {
+      const Duration(milliseconds: 50),
+      (timer) async {
         time += 0.04;
         height = -4.9 * time * time + 3.5 * time;
         birdYaxis = initialHeight - height;
+        // setState(() {
+        //   birdYaxis = initialHeight - height;
+        // });
 
-        setState(() {
-          if (barrierXone == 0.0) {
-            score++;
-          }
-          if (barrierXtwo == 0.0) {
-            score++;
-          }
-        });
-        setState(() {
-          if (barrierXone < -2) {
-            barrierXone += 3.5;
-          } else {
-            barrierXone -= 0.05;
-          }
-        });
+        // setState(() {
+        if (barrierXone < -2) {
+          barrierXone += 3.5;
+        } else {
+          barrierXone -= 0.05;
+          scoreUpdate(barrierXone);
+        }
+        // });
 
         setState(() {
           if (barrierXtwo < -2) {
             barrierXtwo += 3.5;
           } else {
             barrierXtwo -= 0.05;
+            scoreUpdate(barrierXtwo);
           }
         });
+
+        if (barrierXone == 0 || barrierXtwo == 0) {
+          setState(() {
+            score += 1;
+          });
+        }
+
         //when bird touches ground
         if (birdYaxis > 1) {
           timer.cancel();
           gameHasStarted = false;
+          if (score > highScore) {
+            highScore = score;
+            await prefs.setInt(HIGH_SCORE_KEY, highScore);
+          }
+          setState(() {});
           showDialog(
             context: context,
             builder: (ctx) => AlertDialog(
@@ -92,10 +143,11 @@ class _HomePageState extends State<HomePage> {
                     child: const Text('Exit')),
                 TextButton(
                     onPressed: () {
-                      restartGame();
+                      setInitialValues();
+                      // restartGame();
                       Navigator.of(ctx).pop();
                     },
-                    child: const Text('Restart')),
+                    child: const Text('Play Again')),
               ],
             ),
           );
@@ -123,8 +175,17 @@ class _HomePageState extends State<HomePage> {
                 AnimatedContainer(
                   alignment: Alignment(0, birdYaxis),
                   duration: const Duration(milliseconds: 0),
-                  color: Colors.blue,
+                  //color: Colors.blue,
                   child: const MyBird(),
+                  //
+                  decoration: const BoxDecoration(
+                    image: DecorationImage(
+                      fit: BoxFit.cover,
+                      image: AssetImage(
+                        'lib/images/game_wallpaper.jpg',
+                      ),
+                    ),
+                  ),
                 ),
                 Container(
                   alignment: const Alignment(0, -0.3),
@@ -195,16 +256,16 @@ class _HomePageState extends State<HomePage> {
                   ),
                   Column(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      Text(
+                    children: [
+                      const Text(
                         "BEST",
                         style: TextStyle(color: Colors.white, fontSize: 20),
                       ),
-                      SizedBox(
+                      const SizedBox(
                         height: 20,
                       ),
                       Text(
-                        "10",
+                        "$highScore",
                         style: TextStyle(color: Colors.white, fontSize: 35),
                       ),
                     ],

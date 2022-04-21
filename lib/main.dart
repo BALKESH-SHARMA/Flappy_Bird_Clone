@@ -1,4 +1,5 @@
 import 'package:flappy_bird_clone/homepage.dart';
+import 'package:flappy_bird_clone/start_screen.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -10,9 +11,12 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: HomePage(),
+      home: const StartScreen(),
+      routes: {
+        HomePage.ROUTE_NAME: (context) => const HomePage(),
+      },
     );
   }
 }
